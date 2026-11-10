@@ -133,7 +133,7 @@ tr.guru td{background:var(--accent-soft);font-weight:700}
 .centang{width:72px;height:72px;border-radius:50%;background:var(--hadir-bg);color:var(--hadir);display:grid;place-items:center}
 .centang svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 
-.overlay{position:fixed;inset:0;z-index:30;background:rgba(8,11,24,.92);display:grid;place-items:center;padding:16px;overflow:auto}
+.overlay{position:fixed;inset:0;z-index:30;background:#080B18;display:grid;place-items:center;padding:16px;overflow:auto}
 .kambox{width:min(400px,100%);display:flex;flex-direction:column;gap:12px;color:#F2F4FA}
 .kambox h2{font:700 19px/1.2 var(--font-display)}
 .kamview{position:relative;aspect-ratio:3/4;background:#000;border-radius:16px;overflow:hidden}
@@ -141,6 +141,9 @@ tr.guru td{background:var(--accent-soft);font-weight:700}
 .oval{position:absolute;left:18%;right:18%;top:12%;bottom:20%;border:3px solid rgba(255,255,255,.75);border-radius:50%;pointer-events:none}
 .kambox .progress{color:#C9D1FF;font-size:15px;text-align:center;min-height:44px}
 .kambox .progress.err{color:#FFB4AC}
+.kambox .progress.ok{color:#9EF0BF}
+.kamlog{list-style:none;margin:0;padding:0;max-height:132px;overflow:auto;display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:600}
+.kamlog li{padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.1);overflow-wrap:anywhere}
 .kambox .btn{background:transparent;color:#F2F4FA;border-color:rgba(255,255,255,.4)}
 .kambox .btn.primary{background:#F2F4FA;color:#10173A;border-color:#F2F4FA}
 
@@ -203,7 +206,12 @@ dialog::backdrop{background:rgba(10,14,30,.55)}
         <div class="inline"><input id="sTautan" type="text" readonly aria-label="Tautan absensi"><button type="button" class="btn primary" id="sSalin">Salin</button></div>
         <div class="actions"><a class="btn" id="sWa" target="_blank" rel="noopener">Kirim lewat WhatsApp</a><button type="button" class="btn" id="sQrBtn">Tampilkan kode QR</button></div>
         <div id="sQr" class="qr" hidden></div>
-        <p class="hint">Anggota membuka tautan di HP masing-masing, memilih namanya, lalu memindai wajah. Tautan hanya berlaku hari ini selama pertemuan dibuka.</p>
+        <p class="hint">Anggota membuka tautan di HP masing-masing. Kamera langsung memindai wajah, lalu nama dikenali dan dicatat hadir otomatis. Tautan hanya berlaku hari ini selama pertemuan dibuka.</p>
+      </div>
+      <div class="card">
+        <h2>Pindai wajah anggota dari HP ini</h2>
+        <p class="hint" id="sPindaiInfo"></p>
+        <div class="actions"><button type="button" class="btn primary" id="sPindai">Mulai pindai wajah</button></div>
       </div>
       <div class="card" id="sGuru"></div>
       <div class="card" id="sRingkas"></div>
@@ -230,6 +238,8 @@ dialog::backdrop{background:rgba(10,14,30,.55)}
       </div>
       <div class="card">
         <div class="listhead"><h2>Anggota</h2><span id="aInfo"></span></div>
+        <p class="hint">Wajah anggota hanya bisa didaftarkan dari sini. Pindai wajah tiap anggota secara langsung, menghadap kamera, di tempat yang terang.</p>
+        <div class="actions"><button type="button" class="btn primary" id="aBeruntun">Daftarkan wajah berurutan</button></div>
         <ol class="ledger" id="aDaftar"></ol>
       </div>
     </div>
@@ -284,13 +294,12 @@ dialog::backdrop{background:rgba(10,14,30,.55)}
   <main class="wrap">
     <div class="view">
       <div class="card" id="mPesan" hidden></div>
-      <div class="card" id="mPilih" hidden>
-        <h2>Pilih nama Anda</h2>
-        <label class="vh" for="mCari">Cari nama</label>
-        <input id="mCari" type="text" placeholder="Cari nama">
-        <ul class="plain pilih" id="mDaftar"></ul>
+      <div class="card" id="mAksi" hidden>
+        <h2>Absen dengan wajah</h2>
+        <p class="hint">Kamera terbuka otomatis dan wajah Anda dikenali tanpa perlu memilih nama. Hadapkan wajah lurus ke kamera, di tempat yang terang, tanpa masker.</p>
+        <p class="progress" id="mStatus" role="status" aria-live="polite"></p>
+        <div class="actions"><button type="button" class="btn primary" id="mPindai">Pindai wajah</button></div>
       </div>
-      <div class="card" id="mAksi" hidden></div>
       <div class="card sukses" id="mSukses" hidden></div>
     </div>
   </main>
@@ -302,11 +311,13 @@ dialog::backdrop{background:rgba(10,14,30,.55)}
     <h2 id="kamJudul">Pindai wajah</h2>
     <div class="kamview" id="kamView"><video id="kamVideo" playsinline muted autoplay></video><div class="oval" aria-hidden="true"></div></div>
     <p class="progress" id="kamStatus" role="status" aria-live="polite"></p>
+    <ul class="kamlog" id="kamLog" hidden></ul>
     <div class="actions" id="kamCadangan" hidden>
       <input class="vh" type="file" id="kamFile" accept="image/*" capture="user">
-      <label class="btn primary lebar" for="kamFile">Ambil foto selfie</label>
+      <label class="btn primary lebar" for="kamFile">Ambil foto wajah</label>
     </div>
-    <button type="button" class="btn lebar" id="kamGanti">Kamera bermasalah? Pakai foto selfie</button>
+    <button type="button" class="btn lebar" id="kamGanti">Kamera bermasalah? Pakai foto</button>
+    <button type="button" class="btn lebar" id="kamLewati" hidden>Lewati anggota ini</button>
     <button type="button" class="btn lebar" id="kamBatal">Batal</button>
   </div>
 </div>
@@ -319,7 +330,7 @@ dialog::backdrop{background:rgba(10,14,30,.55)}
 
 <script>
 /* ===== WAJIB DIISI: URL aplikasi web Apps Script (berakhiran /exec) ===== */
-var API_URL = 'https://script.google.com/macros/s/AKfycbwwLzdTjZBXAbwxpNsZjjgl7qdyuh_Bwy4eFWBwoogwSwGeFcX5DUtq7_Kl7tLcEkLa/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbx_2bk__41cPjvr31rsgxWg082xh-ZSr2RlzUN7wEVd-jiHJNOei6UD_37Oa7K5k_-x/exec';
 </script>
 <script>
 (function(){
@@ -328,7 +339,7 @@ var LIB='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.
 var MODEL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 var QRLIB='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 var ST={H:'Hadir',S:'Sakit',I:'Izin',A:'Alpa'};
-var VIA={wajah:'wajah',daftar:'wajah, pendaftaran pertama',manual:'manual'};
+var VIA={wajah:'wajah',pendidik:'wajah, dipindai pendidik',daftar:'wajah, pendaftaran pertama',manual:'manual'};
 
 /* ---------- alat bantu ---------- */
 function $(s,r){return (r||document).querySelector(s);}
@@ -406,32 +417,52 @@ async function deteksi(sumber,ukuran){
   var f=window.faceapi;
   return await f.detectSingleFace(sumber,new f.TinyFaceDetectorOptions({inputSize:ukuran,scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
 }
+function jarakKlien(a,b){var s=0,i,d;for(i=0;i<128;i++){d=a[i]-b[i];s+=d*d;}return Math.sqrt(s);}
 /**
- * Membuka kamera depan dan mengembalikan n pola wajah (array angka).
- * Bila kamera langsung tidak tersedia, anggota bisa mengambil satu foto selfie.
+ * Kamera wajah.
+ * opsi.judul  : judul layar
+ * opsi.n      : jumlah pola wajah yang dikumpulkan (mode biasa)
+ * opsi.foto   : boleh beralih ke foto bila kamera langsung bermasalah
+ * opsi.lewati : tampilkan tombol Lewati (ditolak dengan Error('LEWATI'))
+ * opsi.terus  : async function(pola) -> {ok, teks}; kamera terus memindai sampai Selesai
+ * Ditolak dengan Error('BATAL'), Error('KAMERA') atau Error('MESIN').
  */
-function pindaiWajah(n,judul){
+function kamera(opsi){
   return new Promise(function(resolve,reject){
-    var ov=$('#kamera'),video=$('#kamVideo'),stat=$('#kamStatus'),file=$('#kamFile');
-    var stream=null,hidup=true,hasil=[],modeFoto=false;
-    function status(t,err){stat.textContent=t;stat.className='progress'+(err?' err':'');}
+    var ov=$('#kamera'),video=$('#kamVideo'),stat=$('#kamStatus'),file=$('#kamFile'),log=$('#kamLog');
+    var stream=null,hidup=true,hasil=[],modeFoto=false,n=opsi.n||1,sibuk=false,terakhir=null,waktuTerakhir=0;
+    function status(t,jenis){stat.textContent=t;stat.className='progress'+(jenis?' '+jenis:'');}
     function matikan(){ if(stream) stream.getTracks().forEach(function(t){t.stop();}); stream=null; try{video.srcObject=null;}catch(e){} }
     function keFoto(pesan){ modeFoto=true; matikan(); $('#kamView').hidden=true; $('#kamGanti').hidden=true; $('#kamCadangan').hidden=false; status(pesan); }
-    function tutup(){ hidup=false; matikan(); ov.hidden=true; file.onchange=null; $('#kamBatal').onclick=null; $('#kamGanti').onclick=null; }
+    function tutup(){ hidup=false; matikan(); ov.hidden=true; file.onchange=null; ['#kamBatal','#kamGanti','#kamLewati'].forEach(function(s){$(s).onclick=null;}); }
     function selesai(){ tutup(); resolve(hasil); }
-    $('#kamJudul').textContent=judul; $('#kamCadangan').hidden=true; $('#kamView').hidden=false; $('#kamGanti').hidden=false; ov.hidden=false; status('Menyiapkan kamera');
-    $('#kamGanti').onclick=function(){ keFoto('Ambil satu foto selfie dengan wajah terlihat jelas.'); };
-    $('#kamBatal').onclick=function(){ tutup(); reject(new Error('BATAL')); };
+    function gagal(kode){ tutup(); reject(new Error(kode)); }
+    async function kirim(d){
+      sibuk=true; status('Mencocokkan wajah');
+      var r; try{ r=await opsi.terus(d); }catch(e){ r={ok:false,teks:'Gangguan jaringan. Coba lagi.'}; }
+      sibuk=false; if(!hidup) return;
+      status(r.teks,r.ok?'ok':'err');
+      if(r.ok){ log.insertBefore(h('li',null,r.teks),log.firstChild); hasil.push(r); }
+    }
+    $('#kamJudul').textContent=opsi.judul;
+    $('#kamCadangan').hidden=true; $('#kamView').hidden=false; $('#kamGanti').hidden=!opsi.foto; $('#kamLewati').hidden=!opsi.lewati;
+    log.textContent=''; log.hidden=!opsi.terus;
+    $('#kamBatal').textContent=opsi.terus?'Selesai':'Batal';
+    ov.hidden=false; status('Menyiapkan kamera');
+    $('#kamBatal').onclick=function(){ if(opsi.terus) selesai(); else gagal('BATAL'); };
+    $('#kamLewati').onclick=function(){ gagal('LEWATI'); };
+    $('#kamGanti').onclick=function(){ keFoto('Ambil foto wajah yang terlihat jelas dari depan.'); };
     file.onchange=async function(e){
-      var fl=e.target.files&&e.target.files[0]; e.target.value=''; if(!fl||!hidup) return;
+      var fl=e.target.files&&e.target.files[0]; e.target.value=''; if(!fl||!hidup||sibuk) return;
       try{
         status('Memeriksa foto'); await muatMesin();
         var c=await fileKeKanvas(fl),r=null,uk=[416,320,608,224,160],i;
         for(i=0;i<uk.length&&!r;i++) r=await deteksi(c,uk[i]);
         if(!hidup) return;
-        if(!r||r.detection.box.width<c.width*0.12){ status('Wajah tidak terlihat jelas di foto. Ambil foto lagi dari dekat, di tempat terang.',true); return; }
+        if(!r||r.detection.box.width<c.width*0.12){ status('Wajah tidak terlihat jelas di foto. Ambil foto lagi dari dekat, di tempat terang.','err'); return; }
+        if(opsi.terus){ await kirim(bulat(r.descriptor)); return; }
         hasil=[bulat(r.descriptor)]; selesai();
-      }catch(err){ if(hidup) status(err&&err.message==='MESIN'?'Mesin wajah gagal dimuat. Periksa internet lalu coba lagi.':'Foto tidak bisa dibaca. Coba ambil lagi.',true); }
+      }catch(err){ if(hidup) status(err&&err.message==='MESIN'?'Mesin wajah gagal dimuat. Periksa internet lalu coba lagi.':'Foto tidak bisa dibaca. Coba ambil lagi.','err'); }
     };
     (async function(){
       var kameraOk=true;
@@ -442,27 +473,37 @@ function pindaiWajah(n,judul){
         video.srcObject=stream; await video.play();
       }catch(e){ kameraOk=false; }
       if(!hidup) return;
-      if(!kameraOk&&!modeFoto) keFoto('Kamera langsung tidak bisa dibuka di peramban ini. Izinkan akses kamera lalu coba lagi, atau ambil foto selfie.');
+      if(!kameraOk&&!modeFoto){
+        if(!opsi.foto){ gagal('KAMERA'); return; }
+        keFoto('Kamera langsung tidak bisa dibuka di peramban ini. Izinkan akses kamera lalu coba lagi, atau ambil foto wajah.');
+      }
       else if(!modeFoto) status('Memuat mesin wajah. Pertama kali perlu mengunduh sekitar 7 MB.');
-      try{ await muatMesin(); }catch(e){ if(hidup) status('Mesin wajah gagal dimuat. Periksa internet, tutup, lalu coba lagi.',true); return; }
+      try{ await muatMesin(); }catch(e){ if(!hidup) return; if(!opsi.foto){ gagal('MESIN'); return; } status('Mesin wajah gagal dimuat. Periksa internet, tutup, lalu coba lagi.','err'); return; }
       if(!hidup||modeFoto) return;
       var uk=[320,416,224,160],putar=0,beruntun=0,awal=Date.now();
-      status('Hadapkan wajah ke kamera');
+      status(opsi.terus?'Arahkan kamera ke wajah anggota':'Hadapkan wajah ke kamera');
       while(hidup&&!modeFoto){
         var r=null;
         try{ if(video.videoWidth) r=await deteksi(video,uk[putar%uk.length]); }catch(e){}
         if(!hidup||modeFoto) break;
-        if(r&&r.detection.score>=0.6&&r.detection.box.width>=video.videoWidth*0.2){
+        if(r&&r.detection.score>=0.6&&r.detection.box.width>=video.videoWidth*(opsi.terus?0.14:0.18)){
           beruntun++;
           if(beruntun>=2){
-            hasil.push(bulat(r.descriptor)); beruntun=0;
-            if(hasil.length>=n){ selesai(); return; }
-            status('Bagus, tahan sebentar ('+hasil.length+' dari '+n+')'); await jeda(450);
+            var d=bulat(r.descriptor); beruntun=0;
+            if(opsi.terus){
+              if(terakhir&&jarakKlien(d,terakhir)<0.4&&Date.now()-waktuTerakhir<6000){ awal=Date.now(); }
+              else { terakhir=d; waktuTerakhir=Date.now(); await kirim(d); if(!hidup) break; await jeda(1500); if(hidup&&!sibuk) status('Arahkan kamera ke wajah anggota berikutnya'); awal=Date.now(); }
+            } else {
+              hasil.push(d);
+              if(hasil.length>=n){ selesai(); return; }
+              status('Bagus, tahan sebentar ('+hasil.length+' dari '+n+')'); await jeda(450);
+            }
           }
         } else {
           beruntun=0;
           if(!r) putar++;
-          status(r?'Dekatkan wajah ke kamera':(Date.now()-awal>12000?'Wajah belum terlihat. Cari tempat yang lebih terang dan lepas masker.':'Hadapkan wajah ke kamera'));
+          if(!opsi.terus||Date.now()-waktuTerakhir>3500)
+            status(r?'Dekatkan wajah ke kamera':(Date.now()-awal>12000?'Wajah belum terlihat. Cari tempat yang lebih terang dan lepas masker.':(opsi.terus?'Arahkan kamera ke wajah anggota':'Hadapkan wajah ke kamera')));
         }
         await jeda(120);
       }
@@ -551,7 +592,7 @@ async function absenGuru(kode,denganWajah,btn){
     var sampel=null;
     if(denganWajah){
       var punya=T.sesi&&T.tab==='sesi'?T.sesi.punyaWajahPendidik:T.d.punyaWajahPendidik;
-      sampel=await pindaiWajah(punya?1:3,punya?'Pindai wajah pendidik':'Daftarkan wajah pendidik');
+      sampel=await kamera({n:punya?1:3,judul:punya?'Pindai wajah pendidik':'Daftarkan wajah pendidik',foto:true});
     }
     var r=await g('absenPendidik',kode,sampel,false); if(!hasilOk(r)) return;
     toast(r.via==='daftar'?'Wajah Anda didaftarkan dan kehadiran tercatat.':'Kehadiran Anda tercatat pukul '+r.jam+'.');
@@ -600,7 +641,11 @@ function renderSesi(){
   rk.appendChild(h('div',{class:'bar',role:'img','aria-label':'Hadir '+n.H+', sakit '+n.S+', izin '+n.I+', alpa '+n.A+', belum '+belum},
     ['H','S','I','A'].map(function(c){var sp=h('span',{class:'b'+c});sp.style.width=(total?n[c]/total*100:0)+'%';return sp;})));
   rk.appendChild(h('div',{class:'tiles'},['H','S','I','A'].map(function(c){return h('div',{class:'tile t'+c},h('b',null,String(n[c])),h('span',null,ST[c]));}),h('div',{class:'tile'},h('b',null,String(belum)),h('span',null,'Belum'))));
-  $('#sInfo').textContent=total+' anggota, '+d.anggota.filter(function(m){return m.wajah;}).length+' sudah punya data wajah';
+  var nw=d.anggota.filter(function(m){return m.wajah;}).length;
+  $('#sInfo').textContent=total+' anggota, '+nw+' sudah punya data wajah';
+  $('#sPindaiInfo').textContent=nw?'Arahkan kamera HP ini ke wajah anggota satu per satu. Nama dikenali dan dicatat hadir otomatis. '+nw+' dari '+total+' anggota sudah terdaftar wajahnya.'
+    :'Belum ada wajah anggota yang terdaftar di kelas ini. Daftarkan dulu di menu Anggota.';
+  $('#sPindai').disabled=!nw;
   var ol=$('#sDaftar'); ol.textContent='';
   if(!total) ol.appendChild(h('li',{class:'empty'},'Kelas ini belum punya anggota. Tambahkan di menu Anggota.'));
   d.anggota.forEach(function(m,i){
@@ -645,6 +690,16 @@ $('#sHapus').addEventListener('click',function(e){
   if(!window.confirm('Hapus pertemuan ini beserta seluruh catatan kehadirannya?')) return;
   kerja(e.currentTarget,async function(){ var r=await g('hapusPertemuan',T.kode); if(!hasilOk(r)) return; toast('Pertemuan dihapus.'); var asal=T.asal; T.kode=null; T.sesi=null; T.rekap=null; tab(asal); if(asal==='dasbor'){ await muatDasbor(); renderDasbor(); } });
 });
+$('#sPindai').addEventListener('click',function(e){ kerja(e.currentTarget,async function(){
+  var kode=T.kode,kelas=T.sesi.sesi.kelas;
+  var hasil=await kamera({judul:'Pindai wajah anggota · '+kelas,foto:true,terus:async function(d){
+    var r=await g('absenWajahPendidik',kode,[d]);
+    if(r&&r.ok) return {ok:true,teks:(r.sudah?'Sudah hadir: ':'Hadir: ')+r.nama+(r.jam?' · '+r.jam:'')};
+    return {ok:false,teks:(r&&r.pesan)||'Wajah tidak dikenali.'};
+  }});
+  if(hasil.length) toast(hasil.length+' wajah tercatat.');
+  await segarkanSemua();
+}); });
 setInterval(function(){ if(T.token&&T.tab==='sesi'&&T.sesi&&T.sesi.sesi.buka&&!document.hidden&&!T.sibuk&&$('#kamera').hidden) muatSesi(true); },10000);
 
 /* ---------- anggota ---------- */
@@ -665,16 +720,43 @@ function renderAnggota(memuat){
   T.anggota.forEach(function(m,i){
     ol.appendChild(h('li',{class:'row srow','data-id':m.id},h('span',{class:'no'},String(i+1)),
       h('div',{class:'who'},h('span',{class:'nm'},m.nama),h('span',{class:'meta'},(m.nis?'NIS/NIM '+m.nis+' · ':'')+(m.wajah?'Wajah terdaftar':'Wajah belum terdaftar'))),
-      h('button',{type:'button',class:'btn small','data-id':m.id},'Ubah')));
+      m.wajah?h('button',{type:'button',class:'btn small','data-id':m.id},'Ubah')
+        :h('button',{type:'button',class:'btn small primary','data-id':m.id,'data-aksi':'daftar'},'Daftarkan wajah')));
+  });
+  var belum=T.anggota.filter(function(m){return !m.wajah;}).length;
+  $('#aBeruntun').disabled=memuat||!belum;
+  $('#aBeruntun').textContent=belum?'Daftarkan wajah berurutan ('+belum+' belum)':'Semua wajah sudah terdaftar';
+}
+async function daftarkan(m,btn){
+  await kerja(btn,async function(){
+    var s=await kamera({n:3,judul:'Daftarkan wajah: '+m.nama,foto:true});
+    var r=await g('daftarWajah',m.id,s); if(!hasilOk(r)) return;
+    toast('Wajah '+m.nama+' terdaftar.'); await muatDasbor(); await muatAnggota();
   });
 }
+$('#aBeruntun').addEventListener('click',function(e){ kerja(e.currentTarget,async function(){
+  var antre=T.anggota.filter(function(m){return !m.wajah;}),ok=0,i=0;
+  while(i<antre.length){
+    var m=antre[i],s;
+    try{ s=await kamera({n:3,judul:'Daftarkan wajah '+(i+1)+' dari '+antre.length+': '+m.nama,foto:true,lewati:true}); }
+    catch(err){ if(err&&err.message==='LEWATI'){ i++; continue; } if(err&&err.message==='BATAL') break; throw err; }
+    var r=await g('daftarWajah',m.id,s);
+    if(r&&r.ok){ ok++; i++; }
+    else { toast(((r&&r.pesan)||'Gagal menyimpan.')+' Ulangi atau lewati.'); await jeda(1500); }
+  }
+  toast(ok+' wajah didaftarkan.'); await muatDasbor(); await muatAnggota();
+}); });
 $('#aKelas').addEventListener('change',function(e){ lsSet('absen.kelas',e.target.value); muatAnggota(); });
 $('#aTambah').addEventListener('click',function(e){ kerja(e.currentTarget,async function(){
   var id=$('#aKelas').value,ta=$('#aBaru'); if(!id) return;
   var r=await g('tambahAnggota',id,ta.value); if(!hasilOk(r)) return;
   ta.value=''; toast(r.jumlah+' anggota ditambahkan.'); await muatDasbor(); await muatAnggota();
 }); });
-$('#aDaftar').addEventListener('click',function(e){ var li=e.target.closest('[data-id]'); if(li) lembarAnggota(li.getAttribute('data-id')); });
+$('#aDaftar').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-aksi="daftar"]');
+  if(b){ var m=T.anggota.filter(function(x){return x.id===b.getAttribute('data-id');})[0]; if(m) daftarkan(m,b); return; }
+  var li=e.target.closest('[data-id]'); if(li) lembarAnggota(li.getAttribute('data-id'));
+});
 $('#aKelasBaru').addEventListener('click',function(){
   var nama=h('input',{id:'edKelasBaru',type:'text',maxlength:'40',placeholder:'mis. XI AKL 1'});
   bukaLembar('Kelas baru',h('div',{class:'view'},h('div',{class:'fgroup'},h('label',{class:'field',for:'edKelasBaru'},'Nama kelas'),nama),
@@ -698,7 +780,8 @@ function lembarAnggota(id){
   var m=T.anggota.filter(function(x){return x.id===id;})[0]; if(!m) return;
   var nama=h('input',{id:'edNama',type:'text',maxlength:'80',value:m.nama}),nis=h('input',{id:'edNis',type:'text',maxlength:'30',value:m.nis,inputmode:'numeric'});
   bukaLembar(m.nama,h('div',{class:'view'},
-    h('p',{class:'hint'},m.wajah?'Wajah terdaftar'+(m.wajahTgl?' sejak '+tglPanjang(m.wajahTgl.slice(0,10)):'')+'. Hapus data wajah bila anggota perlu mendaftar ulang, misalnya karena salah orang.':'Wajah belum terdaftar. Anggota mendaftar sendiri saat absen pertama lewat tautan pertemuan.'),
+    h('p',{class:'hint'},m.wajah?'Wajah terdaftar'+(m.wajahTgl?' sejak '+tglPanjang(m.wajahTgl.slice(0,10)):'')+'. Daftar ulang bila wajahnya sering tidak dikenali atau ternyata salah orang.':'Wajah belum terdaftar. Anggota ini belum bisa absen dengan wajah sampai Anda mendaftarkannya.'),
+    h('div',{class:'actions'},h('button',{type:'button',class:'btn primary',onclick:function(){ tutupLembar(); daftarkan(m,null); }},m.wajah?'Daftar ulang wajah':'Daftarkan wajah')),
     h('div',{class:'fgroup'},h('label',{class:'field',for:'edNama'},'Nama'),nama),
     h('div',{class:'fgroup'},h('label',{class:'field',for:'edNis'},'NIS / NIM'),nis),
     h('div',{class:'actions'},
@@ -782,8 +865,17 @@ $('#dlgTutup').addEventListener('click',tutupLembar);
 /* =====================================================================
    ANGGOTA
    ===================================================================== */
-var M={kode:null,info:null,pilih:null};
+var M={kode:null,info:null};
 function pesanAnggota(judul,isi){ var p=$('#mPesan'); p.textContent=''; p.appendChild(h('h2',null,judul)); if(isi) p.appendChild(h('p',{class:'hint'},isi)); p.hidden=false; }
+function perangkat(){
+  var id=lsGet('absen.perangkat')||'';
+  if(!/^[A-Za-z0-9]{8,40}$/.test(id)){
+    var huruf='abcdefghijkmnpqrstuvwxyz23456789',acak=new Uint32Array(16),i; id='';
+    crypto.getRandomValues(acak); for(i=0;i<16;i++) id+=huruf.charAt(acak[i]%huruf.length);
+    lsSet('absen.perangkat',id);
+  }
+  return id;
+}
 async function mulaiSiswa(kode){
   M.kode=kode; layar('layarSiswa'); pesanAnggota('Memuat pertemuan','');
   var r;
@@ -793,65 +885,45 @@ async function mulaiSiswa(kode){
   $('#mKelas').textContent='Absensi '+r.sesi.kelas;
   $('#mSub').textContent=['Pertemuan ke-'+r.sesi.ke,tglPanjang(r.sesi.tanggal),r.pendidik?'Pendidik: '+r.pendidik:'',r.sekolah].filter(Boolean).join(' · ');
   if(!r.sesi.buka){ pesanAnggota('Pertemuan sudah ditutup','Absensi lewat tautan ini tidak bisa dilakukan lagi. Hubungi pendidik bila kehadiran Anda belum tercatat.'); return; }
-  $('#mPesan').hidden=true;
-  var ingat=lsGet('absen.saya.'+r.sesi.kelasId);
-  if(ingat&&r.anggota.some(function(m){return m.id===ingat;})) pilihNama(ingat); else tampilPilih();
-}
-function tampilPilih(){
-  M.pilih=null; $('#mAksi').hidden=true; $('#mSukses').hidden=true; $('#mPilih').hidden=false; $('#mCari').value=''; renderPilih();
-}
-function renderPilih(){
-  var q=$('#mCari').value.trim().toLowerCase(),ul=$('#mDaftar'); ul.textContent='';
-  var cocok=M.info.anggota.filter(function(m){return !q||m.nama.toLowerCase().indexOf(q)>=0;});
-  if(!cocok.length) ul.appendChild(h('li',{class:'empty'},'Nama tidak ditemukan. Periksa ejaan atau hubungi pendidik.'));
-  cocok.forEach(function(m){ ul.appendChild(h('li',null,h('button',{type:'button','data-id':m.id},h('span',{class:'nm'},m.nama),m.status==='H'?h('span',{class:'tag H'},'Hadir'):null))); });
-}
-$('#mCari').addEventListener('input',renderPilih);
-$('#mDaftar').addEventListener('click',function(e){ var b=e.target.closest('button[data-id]'); if(b) pilihNama(b.getAttribute('data-id')); });
-function pilihNama(id){
-  var m=M.info.anggota.filter(function(x){return x.id===id;})[0]; if(!m) return tampilPilih();
-  M.pilih=m; lsSet('absen.saya.'+M.info.sesi.kelasId,id);
-  $('#mPilih').hidden=true; $('#mSukses').hidden=true;
-  var a=$('#mAksi'); a.textContent=''; a.hidden=false;
-  a.appendChild(h('span',{class:'field'},'Anda absen sebagai'));
-  a.appendChild(h('p',{class:'besar'},m.nama));
-  if(m.status==='H') a.appendChild(h('p',null,h('span',{class:'tag H'},'Sudah tercatat hadir')));
-  a.appendChild(h('p',{class:'hint'},m.wajah?'Pindai wajah Anda untuk mencatat kehadiran di pertemuan ini.'
-    :'Ini absen pertama Anda. Wajah Anda akan didaftarkan dulu: yang disimpan hanya pola angka wajah untuk absensi kelas ini, bukan foto. Dengan melanjutkan, Anda menyetujuinya.'));
-  a.appendChild(h('p',{class:'progress',id:'mStatus',role:'status','aria-live':'polite'}));
-  a.appendChild(h('div',{class:'actions'},
-    h('button',{type:'button',class:'btn primary',id:'mPindai',onclick:absenSaya},m.wajah?'Pindai wajah':'Daftarkan wajah dan absen'),
-    h('button',{type:'button',class:'btn',onclick:tampilPilih},'Bukan saya, ganti nama')));
+  if(!r.terdaftar){ pesanAnggota('Wajah belum didaftarkan','Pendidik belum mendaftarkan wajah anggota kelas ini. Minta pendidik mendaftarkan wajah Anda lebih dulu.'); return; }
+  $('#mPesan').hidden=true; $('#mAksi').hidden=false;
+  absenSaya();
 }
 async function absenSaya(){
-  var m=M.pilih,btn=$('#mPindai'),stat=$('#mStatus'); if(!m||btn.disabled) return;
+  var btn=$('#mPindai'),stat=$('#mStatus'); if(btn.disabled) return;
   function status(t,err){ stat.textContent=t; stat.className='progress'+(err?' err':''); }
   btn.disabled=true; status('');
   try{
-    var sampel=await pindaiWajah(m.wajah?1:3,m.wajah?'Pindai wajah':'Daftarkan wajah');
-    status('Mengirim ke server');
+    var sampel=await kamera({n:1,judul:'Pindai wajah Anda',foto:false});
+    status('Mencocokkan wajah');
     var r=null,coba;
     for(coba=0;coba<2;coba++){
-      r=await api('absenWajah',M.kode,m.id,sampel);
+      r=await api('absenWajah',M.kode,sampel,perangkat());
       if(r&&!r.ok&&/ramai/.test(r.pesan||'')&&coba===0){ status('Server sedang ramai, mencoba lagi'); await jeda(2500); continue; }
       break;
     }
-    if(r&&r.ok){ m.wajah=true; m.status='H'; tampilSukses(r); return; }
+    if(r&&r.ok){ tampilSukses(r); return; }
     status((r&&r.pesan)||'Tidak berhasil. Coba lagi.',true);
   }catch(e){
-    if(e&&e.message==='BATAL') status('');
+    var k=e&&e.message;
+    if(k==='BATAL') status('Pindai dibatalkan. Ketuk Pindai wajah untuk mencoba lagi.');
+    else if(k==='KAMERA') status('Kamera tidak bisa dibuka. Izinkan akses kamera untuk halaman ini, atau buka tautan di Chrome atau Safari. Bila tetap gagal, minta pendidik memindai wajah Anda.',true);
+    else if(k==='MESIN') status('Mesin wajah gagal dimuat. Periksa internet, lalu coba lagi.',true);
     else status('Terjadi gangguan. Periksa internet lalu coba lagi.',true);
-  }finally{ btn.disabled=false; }
+  }finally{ btn.disabled=false; btn.textContent='Pindai lagi'; }
 }
+$('#mPindai').addEventListener('click',absenSaya);
 function tampilSukses(r){
-  $('#mAksi').hidden=true; $('#mPilih').hidden=true;
+  $('#mAksi').hidden=true;
   var s=$('#mSukses'); s.textContent=''; s.hidden=false;
   var c=h('div',{class:'centang','aria-hidden':'true'}); c.innerHTML='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   s.appendChild(c);
   s.appendChild(h('p',{class:'besar'},r.sudah?'Sudah tercatat hadir':'Hadir tercatat'));
-  s.appendChild(h('p',{class:'nm'},r.nama));
-  s.appendChild(h('p',{class:'hint'},M.info.sesi.kelas+', pertemuan ke-'+M.info.sesi.ke+(r.jam?', pukul '+r.jam:'')+'.'+(r.baru?' Wajah Anda sudah terdaftar untuk pertemuan berikutnya.':'')));
-  s.appendChild(h('p',{class:'hint'},'Selesai. Halaman ini boleh ditutup.'));
+  s.appendChild(h('span',{class:'field'},'Dikenali sebagai'));
+  s.appendChild(h('p',{class:'besar'},r.nama));
+  if(r.nis) s.appendChild(h('p',{class:'nm'},'NIS/NIM '+r.nis));
+  s.appendChild(h('p',{class:'hint'},M.info.sesi.kelas+', pertemuan ke-'+M.info.sesi.ke+(r.jam?', pukul '+r.jam:'')+'.'));
+  s.appendChild(h('p',{class:'hint'},'Bukan nama Anda? Segera beri tahu pendidik agar dikoreksi.'));
   window.scrollTo(0,0);
 }
 
